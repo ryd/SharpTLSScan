@@ -259,10 +259,10 @@ namespace SharpTLSScan
             Console.Write("Working...");
 
             // Parallel powers, ACTIVATE
-            #region SSLv3,TLSv1.0-1.2
+            #region SSLv3,SSLv2,TLSv1.0-1.2
             Parallel.ForEach((ProtocolVersion[]) Enum.GetValues(typeof(ProtocolVersion)), protocolVersion =>
             {
-                foreach (SSLv3AndUpCipherSuite cipherSuite in (SSLv3AndUpCipherSuite[])Enum.GetValues(typeof(SSLv3AndUpCipherSuite)))
+                foreach (SSLv2AndUpCipherSuite cipherSuite in (SSLv2AndUpCipherSuite[])Enum.GetValues(typeof(SSLv2AndUpCipherSuite)))
                 {
                     try
                     {
@@ -270,8 +270,9 @@ namespace SharpTLSScan
                         {
                             using (NetworkStream netStream = tcpClient.GetStream())
                             {
-                                if (protocolVersion == ProtocolVersion.SSLv20)
-                                    continue;
+                                Console.Write('.');
+                                //if (protocolVersion == ProtocolVersion.SSLv20)
+                                //    continue;
 
                                 // SSL3 and up require the client to generate random bytes in their ClientHellos
                                 Random RNG = new Random();
@@ -338,7 +339,9 @@ namespace SharpTLSScan
                                 if (serverHello[5] != 0x02) // Server Hello
                                     throw new Exception("Server did not send a ServerHello message.");
 
-                                if (protocolVersion == ProtocolVersion.SSLv30)
+                                if (protocolVersion == ProtocolVersion.SSLv20)
+                                    sslv20CipherSuitesSupported.Add(protocolVersion + " Cipher: " + cipherSuite);
+                                else if (protocolVersion == ProtocolVersion.SSLv30)
                                     sslv30CipherSuitesSupported.Add(protocolVersion + " Cipher: " + cipherSuite);
                                 else if (protocolVersion == ProtocolVersion.TLSv10)
                                     tlsv10CipherSuitesSupported.Add(protocolVersion + " Cipher: " + cipherSuite);
@@ -374,17 +377,19 @@ namespace SharpTLSScan
                 // SetCursorPosition will throw exception if user redirects standard output!
                 Console.WriteLine();
             }
-            
+
+            foreach (string line in sslv20CipherSuitesSupported)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(line);
+                Console.ResetColor();
+            }
+
             foreach (string line in sslv30CipherSuitesSupported)
             {
-                if (line.ToLower().Contains("md5") | line.ToLower().Contains("rc4"))
-                {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine(line);
-                    Console.ResetColor();
-                }
-                else
-                    Console.WriteLine(line);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(line);
+                Console.ResetColor();
             }
 
             foreach (string line in tlsv10CipherSuitesSupported)
@@ -566,7 +571,7 @@ namespace SharpTLSScan
         DES_192_EDE3_CBC_WITH_MD5     = 0x0700C0
     }
 
-    enum SSLv3AndUpCipherSuite
+    enum SSLv2AndUpCipherSuite
     {		
 		NULL_WITH_NULL_NULL                          = 0x0000,
 		RSA_WITH_NULL_MD5                            = 0x0001,
@@ -889,6 +894,14 @@ namespace SharpTLSScan
         TLS_PSK_WITH_AES_128_CCM_8                   = 0xC0A8,
         TLS_PSK_WITH_AES_256_CCM_8                   = 0xC0A9,
         TLS_PSK_DHE_WITH_AES_128_CCM_8               = 0xC0AA,
-        TLS_PSK_DHE_WITH_AES_256_CCM_8               = 0xC0AB
+        TLS_PSK_DHE_WITH_AES_256_CCM_8               = 0xC0AB,
+        // SSL v2
+        RC4_128_WITH_MD5                             = 0xC0AC,
+        RC4_128_EXPORT40_WITH_MD5                    = 0xC0AD,
+        RC2_128_CBC_WITH_MD5                         = 0xC0AE,
+        RC2_128_CBC_EXPORT40_WITH_MD5                = 0xC0AF,
+        IDEA_128_CBC_WITH_MD5                        = 0xC0B0,
+        DES_64_CBC_WITH_MD5                          = 0xC0B1,
+        DES_192_EDE3_CBC_WITH_MD5                    = 0xC0B2
     }
 }
